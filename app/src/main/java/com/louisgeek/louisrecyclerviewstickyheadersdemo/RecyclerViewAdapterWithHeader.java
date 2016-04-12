@@ -9,16 +9,42 @@ import android.widget.TextView;
 
 import com.eowise.recyclerview.stickyheaders.StickyHeadersAdapter;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+
 
 public class RecyclerViewAdapterWithHeader extends RecyclerView.Adapter<RecyclerView.ViewHolder> implements StickyHeadersAdapter<RecyclerView.ViewHolder> {
 
     private Context mContext;
     private OnItemClickListener listener;
-    private String[] countries;
+    private List<Map<String, Object>> mapList = new ArrayList<>();
+    private List<String> tempItems = new ArrayList<>();
+    private LinkedHashMap<String, Boolean> linkedHashMap;
 
     public RecyclerViewAdapterWithHeader(Context context) {
         this.mContext = context;
-        countries =mContext.getResources().getStringArray(R.array.countries_cn);
+       /* String[] countries =mContext.getResources().getStringArray(R.array.countries_cn);
+        listStr=Arrays.asList(countries);*/
+        for (int i = 0; i < 3; i++) {
+            Map<String, Object> map = new HashMap<>();
+            map.put("name", "AA" + i);
+            mapList.add(map);
+        }
+        for (int i = 0; i < 5; i++) {
+            Map<String, Object> map = new HashMap<>();
+            map.put("name", "BB" + i);
+            mapList.add(map);
+        }
+        for (int i = 0; i < 8; i++) {
+            Map<String, Object> map = new HashMap<>();
+            map.put("name", "CC" + i);
+            mapList.add(map);
+        }
+
+
         //2016年4月12日10:41:08
         setHasStableIds(true);
     }
@@ -31,25 +57,40 @@ public class RecyclerViewAdapterWithHeader extends RecyclerView.Adapter<Recycler
 
 
     @Override
-    public void onBindViewHolder(RecyclerView.ViewHolder  holder, final int position) {
+    public void onBindViewHolder(RecyclerView.ViewHolder holder, final int position) {
 
-        MyViewHolder myViewHolder= (MyViewHolder) holder;
-        myViewHolder.mTextView.setText(countries[position].toString());
+        final MyViewHolder myViewHolder = (MyViewHolder) holder;
+
+        //final int realPosition=myViewHolder.getPosition();
+
+        myViewHolder.mTextView.setText(mapList.get(position).get("name").toString() + " pos:" + position);
 
         myViewHolder.mTextView.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 if (null != listener) {
-                    listener.onItemClick(position, countries[position].toString());
+
+                    listener.onItemClick(position, mapList.get(position));
                 }
             }
         });
+        myViewHolder.mTextView.setOnLongClickListener(new View.OnLongClickListener() {
+            @Override
+            public boolean onLongClick(View v) {
+                if (null != listener) {
+
+                    listener.onItemLongClick(position, mapList.get(position));
+                }
+                return false;
+            }
+        });
+
     }
 
 
     @Override
     public int getItemCount() {
-        return countries.length;
+        return mapList.size();
     }
 
     //必须重写  不然item会错乱
@@ -69,8 +110,8 @@ public class RecyclerViewAdapterWithHeader extends RecyclerView.Adapter<Recycler
 
     @Override
     public void onBindHeaderViewHolder(RecyclerView.ViewHolder viewHolder, int position) {
-        MyHeaderViewHolder myHeaderViewHolder= (MyHeaderViewHolder) viewHolder;
-        myHeaderViewHolder.title.setText(countries[position].toString().subSequence(0, 1));
+        MyHeaderViewHolder myHeaderViewHolder = (MyHeaderViewHolder) viewHolder;
+        myHeaderViewHolder.title.setText(mapList.get(position).get("name").toString().subSequence(0, 1) + " pos:" + position);
         //headerViewHolder.title.setText(countries[position].subSequence(0, 1));
     }
 
@@ -85,7 +126,7 @@ public class RecyclerViewAdapterWithHeader extends RecyclerView.Adapter<Recycler
         }else {
             return 3;
         }*/
-        return countries[position].subSequence(0, 1).hashCode();
+        return mapList.get(position).get("name").toString().subSequence(0, 1).hashCode();
 
     }
 
@@ -97,6 +138,7 @@ public class RecyclerViewAdapterWithHeader extends RecyclerView.Adapter<Recycler
             mTextView = (TextView) view.findViewById(R.id.id_tv_item);
         }
     }
+
     public static class MyHeaderViewHolder extends RecyclerView.ViewHolder {
 
         TextView title;
@@ -108,7 +150,26 @@ public class RecyclerViewAdapterWithHeader extends RecyclerView.Adapter<Recycler
         }
     }
 
+    void addItem(int position, Object object) {
+        Map<String, Object> map = new HashMap<>();
+        map.put("name", "新的数据" + position);
+        mapList.add(position, map);
+        //notifyDataSetChanged();
+        notifyItemInserted(position);
+    }
 
+    void deleteItem(int position) {
+        mapList.remove(position);
+        //暂时解决RecyclerView删除第一项报错问题  IndexOutOfBoundsException Invalid item position
+        if (position == 0) {
+            notifyDataSetChanged();
+        } else {
+            notifyItemRemoved(position);
+        }
+        //后来发现https://github.com/lucasr/twoway-view/issues/134   有同样的问题 2016-4-12 20:10:49
+
+
+    }
 
 
     /**
@@ -116,7 +177,10 @@ public class RecyclerViewAdapterWithHeader extends RecyclerView.Adapter<Recycler
      */
     public interface OnItemClickListener {
         void onItemClick(int position, Object object);
+
+        void onItemLongClick(int position, Object object);
     }
+
     /**
      * 设置监听方法
      *
